@@ -1,0 +1,284 @@
+[build-system]
+requires = [
+    "setuptools>=58.0.0",
+    "wheel>=0.37.0",
+    "Cython>=0.29.0",
+    "numpy>=1.21.0; python_version >= '3.8'"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hybrid-quantum-emulator"
+version = "1.0.0a1"
+description = "Hybrid Quantum Emulator with Topological Compression and Photon-Inspired Architecture"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = [
+    "quantum",
+    "emulator",
+    "topology",
+    "quantum-computing",
+    "quantum-algorithms",
+    "photonic-computing"
+]
+
+authors = [
+    {name = "Quantum Research Team", email = "info@quantum-emulator.org"}
+]
+
+maintainers = [
+    {name = "Core Development Team", email = "dev@quantum-emulator.org"}
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed"
+]
+
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.4.0",
+    "networkx>=2.6.0",
+    "gudhi>=3.5.0",
+    "ripser>=0.6.0",
+    "scikit-learn>=1.0.0",
+    "numba>=0.53.0",
+    "tqdm>=4.62.0",
+    "pandas>=1.3.0",
+    "seaborn>=0.11.0",
+    "persim>=0.2.0",
+    "kmapper>=1.4.1",
+    "tda-tools>=0.1.0",
+    "qiskit>=0.32.0",
+    "qiskit-aer>=0.9.0",
+    "qiskit-ibmq-provider>=0.18.0",
+    "cirq>=0.11.0",
+    "pennylane>=0.19.0",
+    "quantum-gates>=0.1.0"
+]
+
+[project.optional-dependencies]
+gpu = [
+    "cupy-cuda11x>=10.0.0; sys_platform == 'linux'",
+    "pycuda>=2021.1",
+    "torch>=1.10.0",
+    "torchvision>=0.11.0",
+    "torchaudio>=0.10.0"
+]
+dev = [
+    "pytest>=6.2.0",
+    "pytest-cov>=3.0.0",
+    "pytest-asyncio>=0.16.0",
+    "hypothesis>=6.27.0",
+    "mock>=4.0.0",
+    "coverage>=6.0.0",
+    "black>=21.9b0",
+    "flake8>=3.9.0",
+    "isort>=5.9.0",
+    "pre-commit>=2.15.0",
+    "jupyterlab>=3.2.0",
+    "ipykernel>=6.4.0"
+]
+docs = [
+    "sphinx>=4.2.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "nbsphinx>=0.8.0",
+    "m2r2>=0.3.0",
+    "recommonmark>=0.7.0",
+    "sphinxcontrib-napoleon>=0.7.0",
+    "sphinx-autobuild>=2021.3.14"
+]
+windows = [
+    "pywin32>=301"
+]
+macos = [
+    "pyobjc-core>=8.0",
+    "pyobjc-framework-Cocoa>=8.0"
+]
+
+[project.urls]
+Homepage = "https://quantum-emulator.org"
+Documentation = "https://hybrid-quantum-emulator.readthedocs.io"
+Source = "https://github.com/quantum-research/hybrid-quantum-emulator"
+Tracker = "https://github.com/quantum-research/hybrid-quantum-emulator/issues"
+
+[project.scripts]
+hqe-cli = "hqe.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hqe*"]
+
+[tool.setuptools.package-data]
+hqe = ["platforms/*.yaml", "resources/*"]
+
+[tool.setuptools.entry-points."console_scripts"]
+hqe = "hqe.cli:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | docs/_build
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = "hqe"
+sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
+skip = [
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "docs/_build"
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests/unit",
+    "tests/integration",
+    "tests/benchmarks",
+    "tests/conformance"
+]
+python_files = [
+    "test_*.py",
+    "*_test.py"
+]
+markers = [
+    "gpu: tests requiring GPU",
+    "slow: slow tests",
+    "benchmark: performance benchmarks"
+]
+
+[tool.coverage.run]
+branch = true
+source = ["hqe"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[tool.mypy]
+mypy_path = "src"
+ignore_missing_imports = true
+follow_imports = "normal"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # Whitespace before ':'
+    "W503",  # Line break occurred before a binary operator
+    "W504",  # Line break occurred after a binary operator
+]
+exclude = [
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "docs/_build"
+]
+
+[tool.pyright]
+pythonVersion = "3.8"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = false
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git",
+    ".tox",
+    ".venv",
+    "build",
+    "dist",
+    "docs/_build"
+]
+
+[tool.sphinx]
+source_dir = "docs"
+build_dir = "docs/_build"
+builder = "html"
+conf_dir = "docs"
+parallel = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "1.0.0a1"
+tag_format = "$version"
+bump_message = "bump: $current_version → $new_version"
+
+[tool.cibuildwheel]
+build-verbosity = 2
+test-command = "pytest {project}/tests"
+test-requires = "pytest"
+
+[tool.cibuildwheel.linux]
+before-all = "sudo apt-get update && sudo apt-get install -y build-essential cmake"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install cmake"
+
+[tool.cibuildwheel.windows]
+before-all = "choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'"
+
+[tool.hqe]
+platforms = ["SOI", "SiN", "TFLN", "InP"]
+default_platform = "SOI"
+calibration_interval = 60
+wavelengths = 1
+error_tolerance = 0.05
