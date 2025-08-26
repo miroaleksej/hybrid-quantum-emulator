@@ -1,8 +1,13 @@
 # Hybrid Quantum Emulator with Topological Compression
 
-[![CI/CD Pipeline](https://github.com/quantum-research/hybrid-quantum-emulator/actions/workflows/ci.yml/badge.svg)](https://github.com/quantum-research/hybrid-quantum-emulator/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/hybrid-quantum-emulator/badge/?version=latest)](https://hybrid-quantum-emulator.readthedocs.io/en/latest/)
 [![PyPI version](https://badge.fury.io/py/hybrid-quantum-emulator.svg)](https://badge.fury.io/py/hybrid-quantum-emulator)
+
+![Visitors](https://api.visitorbadge.io/api/visitors?path=https://github.com/yourrepo&label=Visitors&countColor=%23263759)
+
+[Why Your Crypto Wallet Is Not As Secure As You Think](https://github.com/miroaleksej/isogenyguard-sdk/blob/main/Why%20Your%20Crypto%20Wallet%20Is%20Not%20As%20Secure%20As%20You%20Think.md)
+
+# Programming work is in progress, and the system is not complete!
 
 **Revolutionizing quantum simulation through topological compression and photon-inspired architecture**
 
