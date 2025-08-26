@@ -1,0 +1,372 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    name: Build and Test (${{ matrix.os }} - Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        exclude:
+          # Windows doesn't support CUDA GPU acceleration
+          - os: windows-latest
+            python-version: '3.8'
+          - os: windows-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.10'
+          - os: windows-latest
+            python-version: '3.11'
+          # macOS has limited GPU support
+          - os: macos-latest
+            python-version: '3.8'
+          - os: macos-latest
+            python-version: '3.9'
+          - os: macos-latest
+            python-version: '3.10'
+          - os: macos-latest
+            python-version: '3.11'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libopenblas-dev liblapack-dev
+
+    - name: Install system dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew update
+        brew install cmake openblas
+
+    - name: Install system dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+        choco install openblas
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+
+    - name: Install core dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install development dependencies
+      run: |
+        pip install -e .[dev]
+
+    - name: Verify package installation
+      run: |
+        pip install .
+
+    - name: Verify package metadata
+      run: |
+        python setup.py --name
+        python setup.py --version
+        python setup.py --description
+
+    - name: Lint with black
+      run: |
+        black --check --diff src/ tests/ examples/
+
+    - name: Lint with flake8
+      run: |
+        flake8 src/ tests/ examples/
+
+    - name: Lint with mypy
+      run: |
+        mypy src/
+
+    - name: Check license headers
+      run: |
+        # Check for MIT license header in Python files
+        grep -r -L 'MIT License' src/**/*.py tests/**/*.py examples/**/*.py || echo "Some files are missing license headers"
+
+    - name: Run unit tests
+      run: |
+        pytest tests/unit --cov=hqe --cov-report=xml
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration
+
+    - name: Run benchmarks
+      run: |
+        pytest tests/benchmarks
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  gpu-tests:
+    name: GPU Acceleration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    container:
+      image: nvidia/cuda:11.8.0-devel-ubuntu22.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install system dependencies
+      run: |
+        apt-get update
+        apt-get install -y build-essential cmake libopenblas-dev liblapack-dev
+
+    - name: Install core dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install GPU dependencies
+      run: |
+        pip install -e .[gpu]
+
+    - name: Verify GPU availability
+      run: |
+        python -c "import torch; print(f'GPU available: {torch.cuda.is_available()}'); print(f'GPU count: {torch.cuda.device_count()}')"
+
+    - name: Run GPU topology tests
+      run: |
+        pytest tests/unit/topology/gpu --cov=hqe.topology.gpu --cov-append
+
+    - name: Run WDM GPU benchmarks
+      run: |
+        pytest tests/benchmarks/gpu --gpu
+
+    - name: Test platform-specific GPU optimizations
+      run: |
+        pytest tests/unit/core/platforms --platforms TFLN,InP
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install bandit safety
+
+    - name: Run Bandit security scanner
+      run: |
+        bandit -r src/ -f txt
+
+    - name: Check for known vulnerabilities
+      run: |
+        safety check --full-report
+
+    - name: Verify cryptographic implementations
+      run: |
+        pytest tests/unit/algorithms/crypto
+
+  platform-tests:
+    name: Platform-Specific Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -e .[dev]
+
+    - name: Test SOI platform
+      run: |
+        pytest tests/unit/core/platforms --platform SOI
+
+    - name: Test SiN platform
+      run: |
+        pytest tests/unit/core/platforms --platform SiN
+
+    - name: Test TFLN platform
+      run: |
+        pytest tests/unit/core/platforms --platform TFLN
+
+    - name: Test InP platform
+      run: |
+        pytest tests/unit/core/platforms --platform InP
+
+    - name: Test platform switching
+      run: |
+        pytest tests/unit/core/platforms/test_switching.py
+
+  algorithm-tests:
+    name: Quantum Algorithm Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -e .[dev]
+
+    - name: Test Grover's algorithm
+      run: |
+        pytest tests/unit/algorithms/grover
+
+    - name: Test Shor's algorithm
+      run: |
+        pytest tests/unit/algorithms/shor
+
+    - name: Test Quantum Machine Learning
+      run: |
+        pytest tests/unit/algorithms/qml
+
+    - name: Test Quantum Cryptography
+      run: |
+        pytest tests/unit/algorithms/crypto
+
+  integration-tests:
+    name: Framework Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -e .[dev]
+
+    - name: Test Qiskit integration
+      run: |
+        pytest tests/integration/qiskit
+
+    - name: Test Cirq integration
+      run: |
+        pytest tests/integration/cirq
+
+    - name: Test hardware bridge
+      run: |
+        pytest tests/integration/hardware
+
+  publish-docs:
+    name: Publish Documentation
+    runs-on: ubuntu-latest
+    needs: [build, security-scan, platform-tests, algorithm-tests, integration-tests]
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -e .[docs]
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/_build/html
+        keep_files: true
+
+  publish-package:
+    name: Publish Package to PyPI
+    runs-on: ubuntu-latest
+    needs: [build, security-scan, platform-tests, algorithm-tests, integration-tests, publish-docs]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install build dependencies
+      run: |
+        pip install build twine
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Verify package
+      run: |
+        twine check dist/*
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
