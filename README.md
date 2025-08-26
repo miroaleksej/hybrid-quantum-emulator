@@ -6,7 +6,7 @@
 
 **Revolutionizing quantum simulation through topological compression and photon-inspired architecture**
 
-![Hybrid Quantum Emulator Architecture](docs/images/architecture.png)
+<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/858e9db1-e5d8-429a-8025-a06edc2c708e" />
 
 ## Overview
 
